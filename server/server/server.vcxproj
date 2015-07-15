@@ -42,6 +42,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <TargetName>AVRemoteControl_Server</TargetName>
+    <IncludePath>D:\ToolKit\ffmpeg-20150712-git-944a1aa-win32-dev\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -86,11 +87,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\input_stream.cpp" />
+    <ClCompile Include="src\avinputstream.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\input_stream.hpp" />
+    <ClInclude Include="include\avlogger.hpp" />
+    <ClInclude Include="include\avinputstream.hpp" />
     <ClInclude Include="include\precompile.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
