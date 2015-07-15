@@ -7,10 +7,11 @@ class AVInputStream
 public: //function
 	AVInputStream(AVFormatContext *in_formart_context);
 	~AVInputStream();
-	bool init();
+	
+	bool operator >> (AVFrame*& aFrame);
 
-	bool operator >> (AVFrame*& aFrame); 
 private:
+	bool init();
 	void destroy();
 	bool get_frame(AVFrame* & frame);
 

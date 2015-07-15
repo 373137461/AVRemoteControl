@@ -20,6 +20,7 @@ format_context_(in_format_context)
 , video_stream_index_(-1)
 , audio_stream_index_(-1)
 {
+	if(!init()) destroy();
 }
 
 bool AVInputStream::init()
@@ -84,6 +85,7 @@ AVInputStream::~AVInputStream()
 
 bool AVInputStream::get_frame(AVFrame* & frame)
 {
+	if (format_context_ == nullptr) return false;
 	frame = nullptr;
 	int frameFinished = 0;
 	int nbytes;
