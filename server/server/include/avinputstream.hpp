@@ -11,7 +11,7 @@ public: //function
 
 	bool operator >> (AVFrame*& aFrame); 
 private:
-	void destory();
+	void destroy();
 	bool get_frame(AVFrame* & frame);
 
 private: //data

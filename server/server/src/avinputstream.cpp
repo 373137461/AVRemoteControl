@@ -69,7 +69,7 @@ bool AVInputStream::init()
 	return true;
 }
 
-void AVInputStream::destory()
+void AVInputStream::destroy()
 {
 	if (format_context_ ) avformat_free_context(format_context_);
 	if (video_frame_) av_frame_free(&video_frame_);
@@ -78,7 +78,7 @@ void AVInputStream::destory()
 
 AVInputStream::~AVInputStream()
 {
-	destory();
+	destroy();
 }
 
 
