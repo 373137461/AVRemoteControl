@@ -1,13 +1,17 @@
 #include "precompile.hpp"
 #include <stdio.h>
+#include "avdevice.hpp"
+#include "sdloverlayport.hpp"
+#include <SDL.h>
 
+#if 0
 int main(int argc, char* argv[])
 {
 	//Initial ffmpeg
 	av_register_all();
 	avformat_network_init();
 	avdevice_register_all();
-	
+
 	//FFmpeg  
 	int ret, got_picture;
 	AVFormatContext *pFormatCtx;
@@ -108,3 +112,95 @@ int main(int argc, char* argv[])
 	
 	return 0;
 }
+#endif
+
+#define DESKTOP_CAP
+//#define CAMERA_CAP
+
+int main(int argc, char* argv[])
+{
+	//Initial ffmpeg
+	av_register_all();
+	avformat_network_init();
+	avdevice_register_all();
+#ifdef DESKTOP_CAP
+	av::AVDevice gdigrab("gdigrab");
+	AVDictionary* options = nullptr;
+	av_dict_set(&options, "framerate", "60", 0);
+	av::AVInputStream *desktop_stream = gdigrab.create_stream("desktop", options);
+	if (!desktop_stream)
+		return false;
+#endif // DESKTOP
+
+#ifdef CAMERA_CAP
+	av::AVDevice dshow("dshow");
+	av::AVInputStream *camera_stream = dshow.create_stream("video=PC Cam");
+	if (!camera_stream)
+		return false;
+#endif
+	
+
+	int width, height;
+	AVPixelFormat pix_fmt;
+	AVPixelFormat pix_fmt1;
+#ifndef  DESKTOP_CAP
+	width = camera_stream->width();
+	height = camera_stream->height();
+	pix_fmt1 = camera_stream->pix_fmt();
+#else
+	width = desktop_stream->width();
+	height = desktop_stream->height();
+	pix_fmt = desktop_stream->pix_fmt();
+#endif // ! DESKTOP_CAP
+
+
+	SDL_Surface     *screen;
+	SDL_Event       event;
+
+	// Make a screen to put our video
+	screen = SDL_SetVideoMode(width, height, 0, 0);
+	if (!screen) {
+		fprintf(stderr, "SDL: could not set video mode - exiting\n");
+		exit(1);
+	}
+
+#ifdef DESKTOP_CAP
+	SdlOverlayPort port(screen, width, height, pix_fmt);
+#endif 
+#ifdef CAMERA_CAP 
+	SdlOverlayPort port1(screen, width, height, pix_fmt1);
+#endif 
+
+	AVFrame *frame, *frame1;
+#ifdef DESKTOP_CAP 
+#ifdef CAMERA_CAP
+	while ((*desktop_stream >> frame) && (*camera_stream >> frame1))
+#else
+	while ((*desktop_stream >> frame))
+#endif // CAMERA_CAP
+#else
+	while ((*camera_stream >> frame1))
+#endif // DESKTOP_CAP 
+	{
+
+#ifdef DESKTOP_CAP 
+		port.put_frame(frame);
+#endif
+#ifdef CAMERA_CAP
+		port1.put_frame(frame1);
+#endif
+		SDL_PollEvent(&event);
+		switch (event.type) {
+		case SDL_QUIT:
+			SDL_Quit();
+			exit(0);
+			break;
+		default:
+			break;
+		}
+	}
+	return 0;
+}
+
+
+
