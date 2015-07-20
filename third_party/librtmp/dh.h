@@ -285,7 +285,7 @@ DHGetPublicKey(MDH *dh, uint8_t *pubkey, size_t nPubkeyLen)
 }
 
 #if 0	/* unused */
-static int
+RTMPDLLEXPORT static int
 DHGetPrivateKey(MDH *dh, uint8_t *privkey, size_t nPrivkeyLen)
 {
   if (!dh || !dh->priv_key)

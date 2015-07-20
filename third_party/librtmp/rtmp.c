@@ -48,9 +48,9 @@ TLS_CTX RTMP_TLS_ctx;
 
 static const int packetSize[] = { 12, 8, 4, 1 };
 
-int RTMP_ctrlC;
+RTMPDLLEXPORT int RTMP_ctrlC;
 
-const char RTMPProtocolStrings[][7] = {
+RTMPDLLEXPORT const char RTMPProtocolStrings[][7] = {
   "RTMP",
   "RTMPT",
   "RTMPE",
@@ -62,7 +62,7 @@ const char RTMPProtocolStrings[][7] = {
   "RTMFP"
 };
 
-const char RTMPProtocolStringsLower[][7] = {
+RTMPDLLEXPORT const char RTMPProtocolStringsLower[][7] = {
   "rtmp",
   "rtmpt",
   "rtmpe",
@@ -316,7 +316,7 @@ RTMP_UpdateBufferMS(RTMP *r)
 #endif
 #define DEF_VERSTR	OSS " 10,0,32,18"
 static const char DEFAULT_FLASH_VER[] = DEF_VERSTR;
-const AVal RTMP_DefaultFlashVer =
+RTMPDLLEXPORT const AVal RTMP_DefaultFlashVer =
   { (char *)DEFAULT_FLASH_VER, sizeof(DEFAULT_FLASH_VER) - 1 };
 
 void

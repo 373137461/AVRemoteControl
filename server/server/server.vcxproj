@@ -55,14 +55,16 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>$(FFMPEG_INCLUDE_DIR);$(Boost_INCLUDE_DIRS);$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(FFMPEG_INCLUDE_DIR);$(Boost_INCLUDE_DIRS);$(ProjectDir)include;$(SolutionDir)../third_party/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>precompile.hpp</PrecompiledHeaderFile>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(FFMPEG_LIBRARY_DIR);$(Boost_LIBRARY_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>avcodec.lib;avdevice.lib;avutil.lib;avformat.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(FFMPEG_LIBRARY_DIR);$(Boost_LIBRARY_DIR);$(SolutionDir)$(Configuration)\;$(Zlib_LIBRARY_DIR);$(Openssl_LIBRARY_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>avcodec.lib;avdevice.lib;avutil.lib;avformat.lib;swscale.lib;librtmp.lib;zlib.lib;libeay32.lib;ssleay32.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -74,26 +76,35 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>$(FFMPEG_INCLUDE_DIR);$(Boost_INCLUDE_DIRS);$(ProjectDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(FFMPEG_INCLUDE_DIR);$(Boost_INCLUDE_DIRS);$(ProjectDir)include;$(SolutionDir)../third_party/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>precompile.hpp</PrecompiledHeaderFile>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(FFMPEG_LIBRARY_DIR);$(Boost_LIBRARY_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>avcodec.lib;avdevice.lib;avutil.lib;avformat.lib;swscale.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(FFMPEG_LIBRARY_DIR);$(Boost_LIBRARY_DIR);$(SolutionDir)$(Configuration)\;$(Zlib_LIBRARY_DIR);$(Openssl_LIBRARY_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>avcodec.lib;avdevice.lib;avutil.lib;avformat.lib;swscale.lib;librtmp.lib;zlib.lib;libeay32.lib;ssleay32.lib;ws2_32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\avinputstream.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\rtmpsrv.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\avlogger.hpp" />
     <ClInclude Include="include\avinputstream.hpp" />
     <ClInclude Include="include\precompile.hpp" />
+    <ClInclude Include="include\rtmpsrv.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\third_party\librtmp\librtmp.vcxproj">
+      <Project>{fb5c6c9c-e2d3-44b3-a2ca-1f61f4f70ee4}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

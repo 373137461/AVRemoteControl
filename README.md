@@ -73,19 +73,18 @@
  +---------------------------------------------------------------------------+
  </pre>
 
+
 ## 网络协议设计
-1.0版，先只实现桌面画面观看，计划使用先已成熟的RTMP协议作为视频传输协议。
-2.0版，实现鼠标键盘的控制，键盘消息鼠标消息的控制协议也在第二版再考虑。
+### 1.0版，先只实现桌面画面观看，计划使用先已成熟的RTMP协议作为视频传输协议。
+### 2.0版，实现鼠标键盘的控制，键盘消息鼠标消息的控制协议也在第二版再考虑。
 
 ## 编译方法
 Windows 请设置以下第三方库的环境变量：
-<pre>
-FFMPEG_LIBRARY_DIR
-FFMPEG_INCLUDE_DIR
-Boost_LIBRARY_DIR
-Boost_INCLUDE_DIRS
-Zlib_LIBRARY_DIR
-Zlib_INCLUDE_DIR
-Openssl_LIBRARY_DIR
-Openssl_INCLUDE_DIR
-</pre>
+### FFMPEG_LIBRARY_DIR
+### FFMPEG_INCLUDE_DIR
+### Boost_LIBRARY_DIR
+### Boost_INCLUDE_DIRS
+### Zlib_LIBRARY_DIR
+### Zlib_INCLUDE_DIR
+### Openssl_LIBRARY_DIR
+### Openssl_INCLUDE_DIR

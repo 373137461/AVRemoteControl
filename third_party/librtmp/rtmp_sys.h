@@ -39,6 +39,8 @@
 #define sleep(n)	Sleep(n*1000)
 #define msleep(n)	Sleep(n)
 #define SET_RCVTIMEO(tv,s)	int tv = s*1000
+
+#define RTMPDLLEXPORT __declspec(dllexport)
 #else /* !_WIN32 */
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -54,6 +56,8 @@
 #define closesocket(s)	close(s)
 #define msleep(n)	usleep(n*1000)
 #define SET_RCVTIMEO(tv,s)	struct timeval tv = {s,0}
+
+#define RTMPDLLEXPORT 
 #endif
 
 #include "rtmp.h"
@@ -62,7 +66,7 @@
 #include <polarssl/net.h>
 #include <polarssl/ssl.h>
 #include <polarssl/havege.h>
-typedef struct tls_ctx {
+RTMPDLLEXPORT typedef struct tls_ctx {
 	havege_state hs;
 	ssl_session ssn;
 } tls_ctx;
@@ -80,7 +84,7 @@ typedef struct tls_ctx {
 
 #elif defined(USE_GNUTLS)
 #include <gnutls/gnutls.h>
-typedef struct tls_ctx {
+RTMPDLLEXPORT typedef struct tls_ctx {
 	gnutls_certificate_credentials_t cred;
 	gnutls_priority_t prios;
 } tls_ctx;
