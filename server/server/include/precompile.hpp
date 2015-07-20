@@ -16,14 +16,8 @@ extern "C"
 #include <libavdevice/avdevice.h>
 };
 
+
 #include "avlogger.hpp"
+#include "avbase.hpp"
 
 class AVInputStream;
-
-enum class AVInputStreamType
-{
-	Desktop,
-	Camera,
-	Video,
-	Network
-};

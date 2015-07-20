@@ -1,20 +1,14 @@
 #include "precompile.hpp"
 #include "avinputstream.hpp"
 
-namespace
-{
-#if defined(_WIN32) || defined(_WIN64)
-	static const char* gDesktopInputFormatString = "gdigrab";
-#else
-	static const char* gDesktopInputFormatString = "x11grab";
-#endif
-}
+AV_NAMESPACE_BEGIN
 
 AVInputStream::AVInputStream(AVFormatContext *in_format_context) :
 format_context_(in_format_context)
 , video_codec_context_(nullptr)
 , audio_codec_context_(nullptr)
-, codec_(nullptr)
+, audio_codec_(nullptr)
+, video_codec_(nullptr)
 , video_frame_(nullptr)
 , audio_frame_(nullptr)
 , video_stream_index_(-1)
@@ -41,23 +35,43 @@ bool AVInputStream::init()
 			audio_stream_index_ = i;
 		}
 	}
-	if (video_stream_index_ == -1 && audio_stream_index_ == -1)
+
+	if (audio_stream_index_ == -1 && video_stream_index_ == -1)
 	{
 		AVLogger::debug() << "Didn't find a video stream.";
 		return false;
 	}
+	if (audio_stream_index_ != -1)
+	{
+		audio_codec_context_ = format_context_->streams[audio_stream_index_]->codec;
+		audio_codec_ = avcodec_find_decoder(audio_codec_context_->codec_id);
+		if (audio_codec_ == nullptr)
+		{
+			AVLogger::debug() << "Audio codec not found.";
+			return false;
+		}
+		if (avcodec_open2(audio_codec_context_, audio_codec_, NULL) < 0)
+		{
+			AVLogger::debug() << "Could not open audio codec.";
+			return false;
+		}
 
-	video_codec_context_ = format_context_->streams[video_stream_index_]->codec;
-	codec_ = avcodec_find_decoder(audio_codec_context_->codec_id);
-	if (codec_ == nullptr)
-	{
-		AVLogger::debug() << "Codec not found.";
-		return false;
 	}
-	if (avcodec_open2(video_codec_context_, codec_, NULL) < 0)
+
+	if (video_stream_index_ != -1)
 	{
-		AVLogger::debug() << "Could not open codec.";
-		return false;
+		video_codec_context_ = format_context_->streams[video_stream_index_]->codec;
+		video_codec_ = avcodec_find_decoder(video_codec_context_->codec_id);
+		if (video_codec_ == nullptr)
+		{
+			AVLogger::debug() << "Video codec not found.";
+			return false;
+		}
+		if (avcodec_open2(video_codec_context_, video_codec_, NULL) < 0)
+		{
+			AVLogger::debug() << "Could not open video codec.";
+			return false;
+		}
 	}
 
 	av_init_packet(&packet_);
@@ -145,3 +159,6 @@ bool AVInputStream::operator >> (AVFrame*& frame)
 {
 	return get_frame(frame);
 }
+
+AV_NAMESPACE_END
+

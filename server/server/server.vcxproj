@@ -55,7 +55,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>$(FFMPEG_INCLUDE_DIR);$(Boost_INCLUDE_DIRS);$(ProjectDir)include;$(SolutionDir)../third_party/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(FFMPEG_INCLUDE_DIR);$(Boost_INCLUDE_DIRS);$(ProjectDir)include;$(SDL_INCLUDE_DIR);$(SolutionDir)../third_party/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeaderFile>precompile.hpp</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <BufferSecurityCheck>false</BufferSecurityCheck>
@@ -63,8 +63,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(FFMPEG_LIBRARY_DIR);$(Boost_LIBRARY_DIR);$(SolutionDir)$(Configuration)\;$(Zlib_LIBRARY_DIR);$(Openssl_LIBRARY_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>avcodec.lib;avdevice.lib;avutil.lib;avformat.lib;swscale.lib;librtmp.lib;zlib.lib;libeay32.lib;ssleay32.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(FFMPEG_LIBRARY_DIR);$(Boost_LIBRARY_DIR);$(SolutionDir)$(Configuration)\;$(Zlib_LIBRARY_DIR);$(Openssl_LIBRARY_DIR);$(SDL_LIBRARY_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>avcodec.lib;avdevice.lib;avutil.lib;avformat.lib;swscale.lib;librtmp.lib;zlib.lib;libeay32.lib;ssleay32.lib;ws2_32.lib;SDL.lib;SDLmain.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -91,13 +91,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\avdevice.cpp" />
+    <ClCompile Include="src\avdevicefactory.cpp" />
     <ClCompile Include="src\avinputstream.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\rtmpsrv.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\avbase.hpp" />
+    <ClInclude Include="include\avdevice.hpp" />
+    <ClInclude Include="include\avdevicefactory.hpp" />
     <ClInclude Include="include\avlogger.hpp" />
     <ClInclude Include="include\avinputstream.hpp" />
+    <ClInclude Include="include\sdloverlayport.hpp" />
     <ClInclude Include="include\precompile.hpp" />
     <ClInclude Include="include\rtmpsrv.hpp" />
   </ItemGroup>
