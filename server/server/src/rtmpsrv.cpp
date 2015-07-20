@@ -902,7 +902,11 @@ stopStreaming(STREAMING_SERVER * server)
 	}
 }
 
-extern _declspec(dllimport) int RTMP_ctrlC = TRUE;
+extern _declspec(dllimport) int RTMP_ctrlC
+#ifdef _DEBUG
+= TRUE
+#endif // DEBUG
+;
 void
 sigIntHandler(int sig)
 {
@@ -913,7 +917,11 @@ sigIntHandler(int sig)
 	signal(SIGINT, SIG_DFL);
 }
 
-extern _declspec(dllimport) RTMP_LogLevel RTMP_debuglevel = RTMP_LOGERROR;
+extern _declspec(dllimport) RTMP_LogLevel RTMP_debuglevel
+#ifdef _DEBUG
+= RTMP_LOGERROR
+#endif // DEBUG
+;
 int
 start_sample_rtmp_server(int argc, char **argv)
 {

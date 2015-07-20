@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
 	
 	return 0;
 }
-#endif
+#else
 
 #define DESKTOP_CAP
 //#define CAMERA_CAP
@@ -202,5 +202,5 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
-
+#endif
 

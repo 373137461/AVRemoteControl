@@ -65,6 +65,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(FFMPEG_LIBRARY_DIR);$(Boost_LIBRARY_DIR);$(SolutionDir)$(Configuration)\;$(Zlib_LIBRARY_DIR);$(Openssl_LIBRARY_DIR);$(SDL_LIBRARY_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>avcodec.lib;avdevice.lib;avutil.lib;avformat.lib;swscale.lib;librtmp.lib;zlib.lib;libeay32.lib;ssleay32.lib;ws2_32.lib;SDL.lib;SDLmain.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -88,6 +89,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(FFMPEG_LIBRARY_DIR);$(Boost_LIBRARY_DIR);$(SolutionDir)$(Configuration)\;$(Zlib_LIBRARY_DIR);$(Openssl_LIBRARY_DIR);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>avcodec.lib;avdevice.lib;avutil.lib;avformat.lib;swscale.lib;librtmp.lib;zlib.lib;libeay32.lib;ssleay32.lib;ws2_32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
