@@ -88,3 +88,5 @@ Windows 请设置以下第三方库的环境变量：
 ### Zlib_INCLUDE_DIR
 ### Openssl_LIBRARY_DIR
 ### Openssl_INCLUDE_DIR
+### SDL_INCLUDE_DIR (debug only)
+### SDL_LIBRARY_DIR (debug only)
