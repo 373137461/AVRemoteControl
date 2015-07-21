@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "avdevice.hpp"
 #include "sdloverlayport.hpp"
+#include "avdevicefactory.hpp"
 #include <SDL.h>
 
 #if 0
@@ -124,6 +125,10 @@ int main(int argc, char* argv[])
 	avformat_network_init();
 	avdevice_register_all();
 #ifdef DESKTOP_CAP
+	av::AVDeviceFactory device_factory;
+	std::vector<AVDeviceInfoList*> device_list;
+	device_factory.GetVideoDevices(device_list);
+
 	av::AVDevice gdigrab("gdigrab");
 	AVDictionary* options = nullptr;
 	av_dict_set(&options, "framerate", "60", 0);
