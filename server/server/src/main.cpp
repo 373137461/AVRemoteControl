@@ -3,6 +3,7 @@
 #include "avdevice.hpp"
 #include "sdloverlayport.hpp"
 #include "avdevicefactory.hpp"
+#include "rtmpsrv.hpp"
 #include <SDL.h>
 
 #if 0
@@ -124,6 +125,9 @@ int main(int argc, char* argv[])
 	av_register_all();
 	avformat_network_init();
 	avdevice_register_all();
+
+	//std::thread theRTMPServerThread(start_sample_rtmp_server, argc, argv);
+
 #ifdef DESKTOP_CAP
 	av::AVDeviceFactory device_factory;
 	std::vector<AVDeviceInfoList*> device_list;
