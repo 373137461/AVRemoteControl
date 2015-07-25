@@ -931,7 +931,7 @@ startStreaming(const char *address, int port)
 
 	std::thread theThread(serverThread, server);
 	//ThreadCreate(serverThread, server);
-
+	theThread.join();
 	return server;
 }
 
