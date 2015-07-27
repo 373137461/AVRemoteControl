@@ -993,7 +993,13 @@ start_sample_rtmp_server(int argc, char **argv)
 	RTMP_LogPrintf("RTMP Server %s\n", "AVRemoteControl Build 1.0");
 	RTMP_LogPrintf("(c) 2010 Andrej Stepanchuk, Howard Chu; license: GPL\n\n");
 
+#ifdef _DEBUG
+	RTMP_debuglevel = RTMP_LOGALL;
+#elif RELEASE
+	RTMP_debuglevel = RTMP_LOGERROR;
+#else
 	RTMP_debuglevel = RTMP_LOGINFO;
+#endif
 
 	if (argc > 1 && !strcmp(argv[1], "-z"))
 		RTMP_debuglevel = RTMP_LOGALL;
