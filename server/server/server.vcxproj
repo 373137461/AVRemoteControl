@@ -105,6 +105,7 @@
     <ClInclude Include="include\avdevicefactory.hpp" />
     <ClInclude Include="include\avlogger.hpp" />
     <ClInclude Include="include\avinputstream.hpp" />
+    <ClInclude Include="include\avrtmpstream.hpp" />
     <ClInclude Include="include\sdloverlayport.hpp" />
     <ClInclude Include="include\precompile.hpp" />
     <ClInclude Include="include\rtmpsrv.hpp" />

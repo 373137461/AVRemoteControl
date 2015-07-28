@@ -126,8 +126,9 @@ int main(int argc, char* argv[])
 	avformat_network_init();
 	avdevice_register_all();
 
-	//std::thread theRTMPServerThread(start_sample_rtmp_server, argc, argv);
-
+	std::thread theRTMPServerThread(start_sample_rtmp_server, argc, argv);
+	theRTMPServerThread.join();
+	/*
 #ifdef DESKTOP_CAP
 	av::AVDeviceFactory device_factory;
 	std::vector<AVDeviceInfoList*> device_list;
@@ -207,7 +208,7 @@ int main(int argc, char* argv[])
 		default:
 			break;
 		}
-	}
+	}*/
 	return 0;
 }
 

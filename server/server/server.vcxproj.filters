@@ -56,5 +56,8 @@
     <ClInclude Include="include\sdloverlayport.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\avrtmpstream.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
