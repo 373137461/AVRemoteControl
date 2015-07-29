@@ -96,6 +96,7 @@
     <ClCompile Include="src\avdevice.cpp" />
     <ClCompile Include="src\avdevicefactory.cpp" />
     <ClCompile Include="src\avinputstream.cpp" />
+    <ClCompile Include="src\avrtmpstream.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\rtmpsrv.cpp" />
   </ItemGroup>

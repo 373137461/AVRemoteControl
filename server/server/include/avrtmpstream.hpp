@@ -1,9 +1,8 @@
 #pragma once
-#include "precompile.hpp"
 
-#include "librtmp/rtmp.h"
-#include "librtmp/amf.h"
-#include "librtmp/log.h"
+
+
+
 
 AV_NAMESPACE_BEGIN
 
@@ -22,8 +21,8 @@ private:
 	bool put_frame(AVFrame*& frame);
 
 private: //data
-	RTMP*          rtmp_;
-	int            rtmp_socket_;
+	struct RTMP*          rtmp_;
+	int                   rtmp_socket_;
 };
 
 AV_NAMESPACE_END
