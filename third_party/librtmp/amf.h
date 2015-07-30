@@ -27,6 +27,13 @@
 
 #include <stdint.h>
 
+#ifdef _WIN32
+#define RTMPDLLEXPORT __declspec(dllexport)
+#else /* !_WIN32 */
+#define RTMPDLLEXPORT 
+#endif
+
+
 #ifndef TRUE
 #define TRUE	1
 #define FALSE	0

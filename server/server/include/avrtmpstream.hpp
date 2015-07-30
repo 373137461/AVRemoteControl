@@ -3,6 +3,7 @@
 
 
 
+struct RTMP;
 
 AV_NAMESPACE_BEGIN
 
