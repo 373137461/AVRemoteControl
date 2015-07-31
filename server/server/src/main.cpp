@@ -4,7 +4,9 @@
 #include "sdloverlayport.hpp"
 #include "avdevicefactory.hpp"
 #include "rtmpsrv.hpp"
+#include "avrtmpstream.hpp"
 #include <SDL.h>
+#include <chrono>
 
 #if 0
 int main(int argc, char* argv[])
@@ -127,6 +129,9 @@ int main(int argc, char* argv[])
 	avdevice_register_all();
 
 	std::thread theRTMPServerThread(start_sample_rtmp_server, argc, argv);
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+	av::AVRTMPStream rtmp_push;
+	rtmp_push.connect("rtmp://127.0.0.1/live/test1");
 	theRTMPServerThread.join();
 	/*
 #ifdef DESKTOP_CAP

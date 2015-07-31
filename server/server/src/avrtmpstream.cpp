@@ -6,8 +6,8 @@
 AV_NAMESPACE_BEGIN
 
 AVRTMPStream::AVRTMPStream()
-:	rtmp_(nullptr),
-	rtmp_socket_(0)
+: rtmp_(RTMP_Alloc()),
+  rtmp_socket_(0)
 {
 }
 
@@ -23,7 +23,6 @@ AVRTMPStream::~AVRTMPStream()
 
 bool AVRTMPStream::connect(const std::string url)
 {
-	rtmp_ = RTMP_Alloc();
 	if (rtmp_ == nullptr)
 	{
 		return false;
