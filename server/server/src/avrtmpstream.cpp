@@ -6,31 +6,46 @@
 AV_NAMESPACE_BEGIN
 
 AVRTMPStream::AVRTMPStream()
+:	rtmp_(nullptr),
+	rtmp_socket_(0)
 {
-
 }
 
 
 AVRTMPStream::~AVRTMPStream()
 {
-
+	if (rtmp_ != nullptr)
+	{
+		RTMP_Free(rtmp_);
+		rtmp_ = nullptr;
+	}
 }
 
 bool AVRTMPStream::connect(const std::string url)
 {
-	if (RTMP_SetupURL(rtmp_, url.c_str()) < 0) {
+	rtmp_ = RTMP_Alloc();
+	if (rtmp_ == nullptr)
+	{
+		return false;
+	}
+	RTMP_Init(rtmp_);
+
+	if (RTMP_SetupURL(rtmp_, url.c_str()) < 0)
+	{
 		return false;
 	}
 
 	RTMP_EnableWrite(rtmp_);
 
-	if (RTMP_Connect(rtmp_, NULL) < 0) {
+	if (RTMP_Connect(rtmp_, nullptr) < 0)
+	{
 		return false;
 	}
 
 	rtmp_socket_ = rtmp_->m_sb.sb_socket;
 
-	if (RTMP_ConnectStream(rtmp_, 0) < 0) {
+	if (RTMP_ConnectStream(rtmp_, 0) < 0)
+	{
 		return false;
 	}
 
@@ -44,21 +59,22 @@ bool AVRTMPStream::send_header(unsigned char *buf, int size)
 
 bool AVRTMPStream::operator<<(AVFrame*& aFrame)
 {
-	return true;
+	return put_frame(aFrame);
 }
 
 void AVRTMPStream::close()
 {
 	if (rtmp_)
 	{
+		RTMP_DeleteStream(rtmp_);
 		RTMP_Close(rtmp_);
-		RTMP_Free(rtmp_);
-		rtmp_ = NULL;
 	}
 }
 
 bool AVRTMPStream::put_frame(AVFrame*& frame)
 {
+	//Todo: call AMF from librtmp 
+	//do frame data convert to rtmp data
 	return true;
 }
 
