@@ -29,7 +29,7 @@ bool AVRTMPStream::connect(const std::string url)
 	}
 	RTMP_Init(rtmp_);
 
-	if (RTMP_SetupURL(rtmp_, url.c_str()) < 0)
+	if (RTMP_SetupURL(rtmp_, const_cast<char*>(url.c_str())) < 0)
 	{
 		return false;
 	}

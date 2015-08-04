@@ -33,7 +33,6 @@
 #define RTMPDLLEXPORT 
 #endif
 
-
 #ifndef TRUE
 #define TRUE	1
 #define FALSE	0
@@ -111,6 +110,9 @@ extern "C"
   RTMPDLLEXPORT double AMF_DecodeNumber(const char *data);
 
   RTMPDLLEXPORT char *AMF_Encode(AMFObject * obj, char *pBuffer, char *pBufEnd);
+  RTMPDLLEXPORT char *AMF_EncodeEcmaArray(AMFObject *obj, char *pBuffer, char *pBufEnd);
+  RTMPDLLEXPORT char *AMF_EncodeArray(AMFObject *obj, char *pBuffer, char *pBufEnd);
+
   RTMPDLLEXPORT int AMF_Decode(AMFObject * obj, const char *pBuffer, int nSize,
 		 int bDecodeName);
   RTMPDLLEXPORT int AMF_DecodeArray(AMFObject * obj, const char *pBuffer, int nSize,

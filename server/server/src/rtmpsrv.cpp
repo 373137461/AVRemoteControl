@@ -1,6 +1,6 @@
 /*  Simple RTMP Server
 *  Copyright (C) 2009 Andrej Stepanchuk
-*  Copyright (C) 2009 Howard Chu
+*  Copyright (C) 2009-2011 Howard Chu
 *
 *  This Program is free software; you can redistribute it and/or modify
 *  it under the terms of the GNU General Public License as published by
@@ -23,19 +23,63 @@
 /* This is just a stub for an RTMP server. It doesn't do anything
 * beyond obtaining the connection parameters from the client.
 */
+
 #include "precompile.hpp"
-#include "rtmpsrv.hpp"
 
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <limits.h>
+
 #include <signal.h>
-//#include <getopt.h>
+
 #include <assert.h>
+
+#include "librtmp/rtmp_sys.h"
+#include "librtmp/log.h"
+
 #include <thread>
 
-struct STREAMING_SERVER
+#ifdef linux
+#include <linux/netfilter_ipv4.h>
+#endif
+
+#ifndef WIN32
+#include <sys/types.h>
+#include <sys/wait.h>
+#endif
+
+#define RD_SUCCESS		0
+#define RD_FAILED		1
+#define RD_INCOMPLETE		2
+
+#define PACKET_SIZE 1024*1024
+
+#ifdef WIN32
+#define InitSockets()	{\
+	WORD version;			\
+	WSADATA wsaData;		\
+					\
+	version = MAKEWORD(1,1);	\
+	WSAStartup(version, &wsaData);	}
+
+#define	CleanupSockets()	WSACleanup()
+#else
+#define InitSockets()
+#define	CleanupSockets()
+#endif
+
+#define DUPTIME	5000	/* interval we disallow duplicate requests, in msec */
+
+enum
+{
+	STREAMING_ACCEPTING,
+	STREAMING_IN_PROGRESS,
+	STREAMING_STOPPING,
+	STREAMING_STOPPED
+};
+
+typedef struct
 {
 	int socket;
 	int state;
@@ -43,14 +87,22 @@ struct STREAMING_SERVER
 	int arglen;
 	int argc;
 	uint32_t filetime;	/* time of last download we started */
-	struct AVal filename;	/* name of last download */
+	AVal filename;	/* name of last download */
 	char *connect;
 
-};
+} STREAMING_SERVER;
 
 STREAMING_SERVER *rtmpServer = 0;	// server structure pointer
+void *sslCtx = NULL;
 
-struct RTMP_REQUEST
+STREAMING_SERVER *startStreaming(const char *address, int port);
+void stopStreaming(STREAMING_SERVER * server);
+void AVreplace(AVal *src, const AVal *orig, const AVal *repl);
+
+static const AVal av_dquote = AVC("\"");
+static const AVal av_escdquote = AVC("\\\"");
+
+typedef struct
 {
 	char *hostname;
 	int rtmpport;
@@ -75,7 +127,7 @@ struct RTMP_REQUEST
 	uint32_t dStartOffset;
 	uint32_t dStopOffset;
 	uint32_t nTimeStamp;
-};
+} RTMP_REQUEST;
 
 #define STR2AVAL(av,str)	av.av_val = str; av.av_len = strlen(av.av_val)
 
@@ -93,7 +145,32 @@ FILE *netstackdump = NULL;
 FILE *netstackdump_read = NULL;
 #endif
 
-int
+#define SAVC(x) static const AVal av_##x = AVC(#x)
+
+SAVC(app);
+SAVC(connect);
+SAVC(flashVer);
+SAVC(swfUrl);
+SAVC(pageUrl);
+SAVC(tcUrl);
+SAVC(fpad);
+SAVC(capabilities);
+SAVC(audioCodecs);
+SAVC(videoCodecs);
+SAVC(videoFunction);
+SAVC(objectEncoding);
+SAVC(_result);
+SAVC(createStream);
+SAVC(getStreamLength);
+SAVC(play);
+SAVC(fmsVer);
+SAVC(mode);
+SAVC(level);
+SAVC(code);
+SAVC(description);
+SAVC(secureToken);
+
+static int
 SendConnectResult(RTMP *r, double txn)
 {
 	RTMPPacket packet;
@@ -104,7 +181,7 @@ SendConnectResult(RTMP *r, double txn)
 
 	packet.m_nChannel = 0x03;     // control channel (invoke)
 	packet.m_headerType = 1; /* RTMP_PACKET_SIZE_MEDIUM; */
-	packet.m_packetType = 0x14;   // INVOKE
+	packet.m_packetType = RTMP_PACKET_TYPE_INVOKE;
 	packet.m_nTimeStamp = 0;
 	packet.m_nInfoField2 = 0;
 	packet.m_hasAbsTimestamp = 0;
@@ -148,16 +225,13 @@ SendConnectResult(RTMP *r, double txn)
 	*enc++ = 0;
 	*enc++ = 0;
 	*enc++ = AMF_OBJECT_END;
-	*enc++ = 0;
-	*enc++ = 0;
-	*enc++ = AMF_OBJECT_END;
 
 	packet.m_nBodySize = enc - packet.m_body;
 
 	return RTMP_SendPacket(r, &packet, FALSE);
 }
 
-int
+static int
 SendResultNumber(RTMP *r, double txn, double ID)
 {
 	RTMPPacket packet;
@@ -165,7 +239,7 @@ SendResultNumber(RTMP *r, double txn, double ID)
 
 	packet.m_nChannel = 0x03;     // control channel (invoke)
 	packet.m_headerType = 1; /* RTMP_PACKET_SIZE_MEDIUM; */
-	packet.m_packetType = 0x14;   // INVOKE
+	packet.m_packetType = RTMP_PACKET_TYPE_INVOKE;
 	packet.m_nTimeStamp = 0;
 	packet.m_nInfoField2 = 0;
 	packet.m_hasAbsTimestamp = 0;
@@ -184,22 +258,23 @@ SendResultNumber(RTMP *r, double txn, double ID)
 
 SAVC(onStatus);
 SAVC(status);
-const AVal av_NetStream_Play_Start = AVC("NetStream.Play.Start");
-const AVal av_Started_playing = AVC("Started playing");
-const AVal av_NetStream_Play_Stop = AVC("NetStream.Play.Stop");
-const AVal av_Stopped_playing = AVC("Stopped playing");
+static const AVal av_NetStream_Play_Start = AVC("NetStream.Play.Start");
+static const AVal av_Started_playing = AVC("Started playing");
+static const AVal av_NetStream_Play_Stop = AVC("NetStream.Play.Stop");
+static const AVal av_Stopped_playing = AVC("Stopped playing");
 SAVC(details);
 SAVC(clientid);
+static const AVal av_NetStream_Authenticate_UsherToken = AVC("NetStream.Authenticate.UsherToken");
 
-int
+static int
 SendPlayStart(RTMP *r)
 {
 	RTMPPacket packet;
-	char pbuf[384], *pend = pbuf + sizeof(pbuf);
+	char pbuf[512], *pend = pbuf + sizeof(pbuf);
 
 	packet.m_nChannel = 0x03;     // control channel (invoke)
 	packet.m_headerType = 1; /* RTMP_PACKET_SIZE_MEDIUM; */
-	packet.m_packetType = 0x14;   // INVOKE
+	packet.m_packetType = RTMP_PACKET_TYPE_INVOKE;
 	packet.m_nTimeStamp = 0;
 	packet.m_nInfoField2 = 0;
 	packet.m_hasAbsTimestamp = 0;
@@ -223,15 +298,15 @@ SendPlayStart(RTMP *r)
 	return RTMP_SendPacket(r, &packet, FALSE);
 }
 
-int
+static int
 SendPlayStop(RTMP *r)
 {
 	RTMPPacket packet;
-	char pbuf[384], *pend = pbuf + sizeof(pbuf);
+	char pbuf[512], *pend = pbuf + sizeof(pbuf);
 
 	packet.m_nChannel = 0x03;     // control channel (invoke)
 	packet.m_headerType = 1; /* RTMP_PACKET_SIZE_MEDIUM; */
-	packet.m_packetType = 0x14;   // INVOKE
+	packet.m_packetType = RTMP_PACKET_TYPE_INVOKE;
 	packet.m_nTimeStamp = 0;
 	packet.m_nInfoField2 = 0;
 	packet.m_hasAbsTimestamp = 0;
@@ -255,7 +330,7 @@ SendPlayStop(RTMP *r)
 	return RTMP_SendPacket(r, &packet, FALSE);
 }
 
-void
+static void
 spawn_dumper(int argc, AVal *av, char *cmd)
 {
 #ifdef WIN32
@@ -288,7 +363,7 @@ spawn_dumper(int argc, AVal *av, char *cmd)
 #endif
 }
 
-int
+static int
 countAMF(AMFObject *obj, int *argc)
 {
 	int i, len;
@@ -327,7 +402,7 @@ countAMF(AMFObject *obj, int *argc)
 	return len;
 }
 
-char *
+static char *
 dumpAMF(AMFObject *obj, char *ptr, AVal *argv, int *argc)
 {
 	int i, len, ac = *argc;
@@ -504,6 +579,15 @@ ServeInvoke(STREAMING_SERVER *server, RTMP * r, RTMPPacket *packet, unsigned int
 	{
 		SendResultNumber(r, txn, 10.0);
 	}
+	else if (AVMATCH(&method, &av_NetStream_Authenticate_UsherToken))
+	{
+		AVal usherToken;
+		AMFProp_GetString(AMF_GetProp(&obj, NULL, 3), &usherToken);
+		AVreplace(&usherToken, &av_dquote, &av_escdquote);
+		server->arglen += 6 + usherToken.av_len;
+		server->argc += 2;
+		r->Link.usherToken = usherToken;
+	}
 	else if (AVMATCH(&method, &av_play))
 	{
 		char *file, *p, *q, *cmd, *ptr;
@@ -568,6 +652,17 @@ ServeInvoke(STREAMING_SERVER *server, RTMP * r, RTMPPacket *packet, unsigned int
 				argv[argc].av_val = ptr + 5;
 				ptr += sprintf(ptr, " -p \"%s\"", r->Link.pageUrl.av_val);
 				argv[argc++].av_len = r->Link.pageUrl.av_len;
+			}
+			if (r->Link.usherToken.av_val)
+			{
+				argv[argc].av_val = ptr + 1;
+				argv[argc++].av_len = 2;
+				argv[argc].av_val = ptr + 5;
+				ptr += sprintf(ptr, " -j \"%s\"", r->Link.usherToken.av_val);
+				argv[argc++].av_len = r->Link.usherToken.av_len;
+				free(r->Link.usherToken.av_val);
+				r->Link.usherToken.av_val = NULL;
+				r->Link.usherToken.av_len = 0;
 			}
 			if (r->Link.extras.o_num) {
 				ptr = dumpAMF(&r->Link.extras, ptr, argv, &argc);
@@ -669,54 +764,47 @@ ServePacket(STREAMING_SERVER *server, RTMP *r, RTMPPacket *packet)
 {
 	int ret = 0;
 
-	RTMP_Log(RTMP_LOGDEBUG, "%s, received packet type %02X, size %lu bytes", __FUNCTION__,
+	RTMP_Log(RTMP_LOGDEBUG, "%s, received packet type %02X, size %u bytes", __FUNCTION__,
 		packet->m_packetType, packet->m_nBodySize);
 
 	switch (packet->m_packetType)
 	{
-	case 0x01:
-		// chunk size
+	case RTMP_PACKET_TYPE_CHUNK_SIZE:
 		//      HandleChangeChunkSize(r, packet);
 		break;
 
-	case 0x03:
-		// bytes read report
+	case RTMP_PACKET_TYPE_BYTES_READ_REPORT:
 		break;
 
-	case 0x04:
-		// ctrl
+	case RTMP_PACKET_TYPE_CONTROL:
 		//      HandleCtrl(r, packet);
 		break;
 
-	case 0x05:
-		// server bw
+	case RTMP_PACKET_TYPE_SERVER_BW:
 		//      HandleServerBW(r, packet);
 		break;
 
-	case 0x06:
-		// client bw
+	case RTMP_PACKET_TYPE_CLIENT_BW:
 		//     HandleClientBW(r, packet);
 		break;
 
-	case 0x08:
-		// audio data
+	case RTMP_PACKET_TYPE_AUDIO:
 		//RTMP_Log(RTMP_LOGDEBUG, "%s, received: audio %lu bytes", __FUNCTION__, packet.m_nBodySize);
 		break;
 
-	case 0x09:
-		// video data
+	case RTMP_PACKET_TYPE_VIDEO:
 		//RTMP_Log(RTMP_LOGDEBUG, "%s, received: video %lu bytes", __FUNCTION__, packet.m_nBodySize);
 		break;
 
-	case 0x0F:			// flex stream send
+	case RTMP_PACKET_TYPE_FLEX_STREAM_SEND:
 		break;
 
-	case 0x10:			// flex shared object
+	case RTMP_PACKET_TYPE_FLEX_SHARED_OBJECT:
 		break;
 
-	case 0x11:			// flex message
+	case RTMP_PACKET_TYPE_FLEX_MESSAGE:
 	{
-		RTMP_Log(RTMP_LOGDEBUG, "%s, flex message, size %lu bytes, not fully supported",
+		RTMP_Log(RTMP_LOGDEBUG, "%s, flex message, size %u bytes, not fully supported",
 			__FUNCTION__, packet->m_nBodySize);
 		//RTMP_LogHex(packet.m_body, packet.m_nBodySize);
 
@@ -734,17 +822,14 @@ ServePacket(STREAMING_SERVER *server, RTMP *r, RTMPPacket *packet)
 			RTMP_Close(r);
 		break;
 	}
-	case 0x12:
-		// metadata (notify)
+	case RTMP_PACKET_TYPE_INFO:
 		break;
 
-	case 0x13:
-		/* shared object */
+	case RTMP_PACKET_TYPE_SHARED_OBJECT:
 		break;
 
-	case 0x14:
-		// invoke
-		RTMP_Log(RTMP_LOGDEBUG, "%s, received: invoke %lu bytes", __FUNCTION__,
+	case RTMP_PACKET_TYPE_INVOKE:
+		RTMP_Log(RTMP_LOGDEBUG, "%s, received: invoke %u bytes", __FUNCTION__,
 			packet->m_nBodySize);
 		//RTMP_LogHex(packet.m_body, packet.m_nBodySize);
 
@@ -752,8 +837,7 @@ ServePacket(STREAMING_SERVER *server, RTMP *r, RTMPPacket *packet)
 			RTMP_Close(r);
 		break;
 
-	case 0x16:
-		/* flv */
+	case RTMP_PACKET_TYPE_FLASH_VIDEO:
 		break;
 	default:
 		RTMP_Log(RTMP_LOGDEBUG, "%s, unknown packet type received: 0x%02x", __FUNCTION__,
@@ -793,7 +877,7 @@ void doServe(STREAMING_SERVER * server,	// server socket and state (our listenin
 {
 	server->state = STREAMING_IN_PROGRESS;
 
-	RTMP rtmp = { 0 };		/* our session with the real client */
+	RTMP *rtmp = RTMP_Alloc();		/* our session with the real client */
 	RTMPPacket packet = { 0 };
 
 	// timeout for http requests
@@ -813,33 +897,44 @@ void doServe(STREAMING_SERVER * server,	// server socket and state (our listenin
 	}
 	else
 	{
-		RTMP_Init(&rtmp);
-		rtmp.m_sb.sb_socket = sockfd;
-		if (!RTMP_Serve(&rtmp))
+		RTMP_Init(rtmp);
+		rtmp->m_sb.sb_socket = sockfd;
+		if (sslCtx && !RTMP_TLS_Accept(rtmp, sslCtx))
+		{
+			RTMP_Log(RTMP_LOGERROR, "TLS handshake failed");
+			goto cleanup;
+		}
+		if (!RTMP_Serve(rtmp))
 		{
 			RTMP_Log(RTMP_LOGERROR, "Handshake failed");
 			goto cleanup;
 		}
 	}
 	server->arglen = 0;
-	while (RTMP_IsConnected(&rtmp) && RTMP_ReadPacket(&rtmp, &packet))
+	while (RTMP_IsConnected(rtmp) && RTMP_ReadPacket(rtmp, &packet))
 	{
 		if (!RTMPPacket_IsReady(&packet))
 			continue;
-		ServePacket(server, &rtmp, &packet);
+		ServePacket(server, rtmp, &packet);
 		RTMPPacket_Free(&packet);
 	}
 
 cleanup:
 	RTMP_LogPrintf("Closing connection... ");
-	RTMP_Close(&rtmp);
+	RTMP_Close(rtmp);
 	/* Should probably be done by RTMP_Close() ... */
-	rtmp.Link.playpath.av_val = NULL;
-	rtmp.Link.tcUrl.av_val = NULL;
-	rtmp.Link.swfUrl.av_val = NULL;
-	rtmp.Link.pageUrl.av_val = NULL;
-	rtmp.Link.app.av_val = NULL;
-	rtmp.Link.flashVer.av_val = NULL;
+	rtmp->Link.playpath.av_val = NULL;
+	rtmp->Link.tcUrl.av_val = NULL;
+	rtmp->Link.swfUrl.av_val = NULL;
+	rtmp->Link.pageUrl.av_val = NULL;
+	rtmp->Link.app.av_val = NULL;
+	rtmp->Link.flashVer.av_val = NULL;
+	if (rtmp->Link.usherToken.av_val)
+	{
+		free(rtmp->Link.usherToken.av_val);
+		rtmp->Link.usherToken.av_val = NULL;
+	}
+	RTMP_Free(rtmp);
 	RTMP_LogPrintf("done!\n\n");
 
 quit:
@@ -929,9 +1024,10 @@ startStreaming(const char *address, int port)
 	server = (STREAMING_SERVER *)calloc(1, sizeof(STREAMING_SERVER));
 	server->socket = sockfd;
 
-	std::thread theThread(serverThread, server);
 	//ThreadCreate(serverThread, server);
+	std::thread theThread(serverThread, server);
 	theThread.join();
+
 	return server;
 }
 
@@ -953,7 +1049,7 @@ stopStreaming(STREAMING_SERVER * server)
 
 		if (closesocket(server->socket))
 			RTMP_Log(RTMP_LOGERROR, "%s: Failed to close listening socket, error %d",
-			GetSockError());
+			__FUNCTION__, GetSockError());
 
 		server->state = STREAMING_STOPPED;
 	}
@@ -983,26 +1079,32 @@ int
 start_sample_rtmp_server(int argc, char **argv)
 {
 	int nStatus = RD_SUCCESS;
+	int i;
 
 	// http streaming server
 	char DEFAULT_HTTP_STREAMING_DEVICE[] = "0.0.0.0";	// 0.0.0.0 is any device
 
 	char *rtmpStreamingDevice = DEFAULT_HTTP_STREAMING_DEVICE;	// streaming device, default 0.0.0.0
 	int nRtmpStreamingPort = 1935;	// port
+	char *cert = NULL, *key = NULL;
 
 	RTMP_LogPrintf("RTMP Server %s\n", "AVRemoteControl Build 1.0");
 	RTMP_LogPrintf("(c) 2010 Andrej Stepanchuk, Howard Chu; license: GPL\n\n");
 
-#ifdef _DEBUG
-	RTMP_debuglevel = RTMP_LOGALL;
-#elif RELEASE
-	RTMP_debuglevel = RTMP_LOGERROR;
-#else
 	RTMP_debuglevel = RTMP_LOGINFO;
-#endif
 
-	if (argc > 1 && !strcmp(argv[1], "-z"))
-		RTMP_debuglevel = RTMP_LOGALL;
+	for (i = 1; i < argc; i++)
+	{
+		if (!strcmp(argv[i], "-z"))
+			RTMP_debuglevel = RTMP_LOGALL;
+		else if (!strcmp(argv[i], "-c") && i + 1 < argc)
+			cert = argv[++i];
+		else if (!strcmp(argv[i], "-k") && i + 1 < argc)
+			key = argv[++i];
+	}
+
+	if (cert && key)
+		sslCtx = RTMP_TLS_AllocServerContext(cert, key);
 
 	// init request
 	memset(&defaultRTMPRequest, 0, sizeof(RTMP_REQUEST));
@@ -1028,8 +1130,9 @@ start_sample_rtmp_server(int argc, char **argv)
 	InitSockets();
 
 	// start text UI
-	std::thread theThread(controlServerThread);
 	//ThreadCreate(controlServerThread, 0);
+	std::thread theThread(controlServerThread);
+	theThread.join();
 
 	// start http streaming
 	if ((rtmpServer =
@@ -1047,6 +1150,9 @@ start_sample_rtmp_server(int argc, char **argv)
 	}
 	RTMP_Log(RTMP_LOGDEBUG, "Done, exiting...");
 
+	if (sslCtx)
+		RTMP_TLS_FreeServerContext(sslCtx);
+
 	CleanupSockets();
 
 #ifdef _DEBUG
@@ -1056,4 +1162,44 @@ start_sample_rtmp_server(int argc, char **argv)
 		fclose(netstackdump_read);
 #endif
 	return nStatus;
+}
+
+void
+AVreplace(AVal *src, const AVal *orig, const AVal *repl)
+{
+	char *srcbeg = src->av_val;
+	char *srcend = src->av_val + src->av_len;
+	char *dest, *sptr, *dptr;
+	int n = 0;
+
+	/* count occurrences of orig in src */
+	sptr = src->av_val;
+	while (sptr < srcend && (sptr = strstr(sptr, orig->av_val)))
+	{
+		n++;
+		sptr += orig->av_len;
+	}
+	if (!n)
+		return;
+
+	dest = (char*)malloc(src->av_len + 1 + (repl->av_len - orig->av_len) * n);
+
+	sptr = src->av_val;
+	dptr = dest;
+	while (sptr < srcend && (sptr = strstr(sptr, orig->av_val)))
+	{
+		n = sptr - srcbeg;
+		memcpy(dptr, srcbeg, n);
+		dptr += n;
+		memcpy(dptr, repl->av_val, repl->av_len);
+		dptr += repl->av_len;
+		sptr += orig->av_len;
+		srcbeg = sptr;
+	}
+	n = srcend - srcbeg;
+	memcpy(dptr, srcbeg, n);
+	dptr += n;
+	*dptr = '\0';
+	src->av_val = dest;
+	src->av_len = dptr - dest;
 }

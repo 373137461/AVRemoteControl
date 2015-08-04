@@ -23,7 +23,7 @@
  *  http://www.gnu.org/copyleft/lgpl.html
  */
 
-RTMPDLLEXPORT typedef enum {
+typedef enum {
   HTTPRES_OK,               /* result OK */
   HTTPRES_OK_NOT_MODIFIED,  /* not modified since last request */
   HTTPRES_NOT_FOUND,        /* not found */
@@ -33,15 +33,15 @@ RTMPDLLEXPORT typedef enum {
   HTTPRES_LOST_CONNECTION   /* connection lost while waiting for data */
 } HTTPResult;
 
-RTMPDLLEXPORT struct HTTP_ctx {
+struct HTTP_ctx {
   char *date;
   int size;
   int status;
   void *data;
 };
 
-RTMPDLLEXPORT typedef size_t(HTTP_read_callback)(void *ptr, size_t size, size_t nmemb, void *stream);
+typedef size_t (HTTP_read_callback)(void *ptr, size_t size, size_t nmemb, void *stream);
 
-RTMPDLLEXPORT HTTPResult HTTP_get(struct HTTP_ctx *http, const char *url, HTTP_read_callback *cb);
+HTTPResult HTTP_get(struct HTTP_ctx *http, const char *url, HTTP_read_callback *cb);
 
 #endif

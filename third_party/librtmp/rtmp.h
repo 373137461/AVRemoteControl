@@ -71,9 +71,29 @@ extern "C"
 
   RTMPDLLEXPORT uint32_t RTMP_GetTime(void);
 
-#define RTMP_PACKET_TYPE_AUDIO 0x08
-#define RTMP_PACKET_TYPE_VIDEO 0x09
-#define RTMP_PACKET_TYPE_INFO  0x12
+/*      RTMP_PACKET_TYPE_...                0x00 */
+#define RTMP_PACKET_TYPE_CHUNK_SIZE         0x01
+/*      RTMP_PACKET_TYPE_...                0x02 */
+#define RTMP_PACKET_TYPE_BYTES_READ_REPORT  0x03
+#define RTMP_PACKET_TYPE_CONTROL            0x04
+#define RTMP_PACKET_TYPE_SERVER_BW          0x05
+#define RTMP_PACKET_TYPE_CLIENT_BW          0x06
+/*      RTMP_PACKET_TYPE_...                0x07 */
+#define RTMP_PACKET_TYPE_AUDIO              0x08
+#define RTMP_PACKET_TYPE_VIDEO              0x09
+/*      RTMP_PACKET_TYPE_...                0x0A */
+/*      RTMP_PACKET_TYPE_...                0x0B */
+/*      RTMP_PACKET_TYPE_...                0x0C */
+/*      RTMP_PACKET_TYPE_...                0x0D */
+/*      RTMP_PACKET_TYPE_...                0x0E */
+#define RTMP_PACKET_TYPE_FLEX_STREAM_SEND   0x0F
+#define RTMP_PACKET_TYPE_FLEX_SHARED_OBJECT 0x10
+#define RTMP_PACKET_TYPE_FLEX_MESSAGE       0x11
+#define RTMP_PACKET_TYPE_INFO               0x12
+#define RTMP_PACKET_TYPE_SHARED_OBJECT      0x13
+#define RTMP_PACKET_TYPE_INVOKE             0x14
+/*      RTMP_PACKET_TYPE_...                0x15 */
+#define RTMP_PACKET_TYPE_FLASH_VIDEO        0x16
 
 #define RTMP_MAX_HEADER_SIZE 18
 
@@ -135,7 +155,10 @@ extern "C"
     AVal auth;
     AVal flashVer;
     AVal subscribepath;
+    AVal usherToken;
     AVal token;
+    AVal pubUser;
+    AVal pubPasswd;
     AMFObject extras;
     int edepth;
 
@@ -148,12 +171,15 @@ extern "C"
 #define RTMP_LF_PLST	0x0008	/* send playlist before play */
 #define RTMP_LF_BUFX	0x0010	/* toggle stream on BufferEmpty msg */
 #define RTMP_LF_FTCU	0x0020	/* free tcUrl on close */
+#define RTMP_LF_FAPU	0x0040	/* free app on close */
     int lFlags;
 
     int swfAge;
 
     int protocol;
     int timeout;		/* connection timeout in seconds */
+
+    int pFlags;			/* unused, but kept to avoid breaking ABI */
 
     unsigned short socksport;
     unsigned short port;
@@ -232,9 +258,11 @@ extern "C"
     int m_numCalls;
     RTMP_METHOD *m_methodCalls;	/* remote method calls queue */
 
-    RTMPPacket *m_vecChannelsIn[RTMP_CHANNELS];
-    RTMPPacket *m_vecChannelsOut[RTMP_CHANNELS];
-    int m_channelTimestamp[RTMP_CHANNELS];	/* abs timestamp of last packet */
+    int m_channelsAllocatedIn;
+    int m_channelsAllocatedOut;
+    RTMPPacket **m_vecChannelsIn;
+    RTMPPacket **m_vecChannelsOut;
+    int *m_channelTimestamp;	/* abs timestamp of last packet */
 
     double m_fAudioCodecs;	/* audioCodecs for the connect packet */
     double m_fVideoCodecs;	/* videoCodecs for the connect packet */
@@ -262,7 +290,7 @@ extern "C"
   RTMPDLLEXPORT void RTMP_UpdateBufferMS(RTMP *r);
 
   RTMPDLLEXPORT int RTMP_SetOpt(RTMP *r, const AVal *opt, AVal *arg);
-  RTMPDLLEXPORT int RTMP_SetupURL(RTMP *r, const char *url);
+  RTMPDLLEXPORT int RTMP_SetupURL(RTMP *r, char *url);
   RTMPDLLEXPORT void RTMP_SetupStream(RTMP *r, int protocol,
 			AVal *hostname,
 			unsigned int port,
@@ -277,14 +305,16 @@ extern "C"
 			uint32_t swfSize,
 			AVal *flashVer,
 			AVal *subscribepath,
+			AVal *usherToken,
 			int dStart,
 			int dStop, int bLiveStream, long int timeout);
 
   RTMPDLLEXPORT int RTMP_Connect(RTMP *r, RTMPPacket *cp);
-  struct sockaddr;
+  RTMPDLLEXPORT struct sockaddr;
   RTMPDLLEXPORT int RTMP_Connect0(RTMP *r, struct sockaddr *svc);
   RTMPDLLEXPORT int RTMP_Connect1(RTMP *r, RTMPPacket *cp);
   RTMPDLLEXPORT int RTMP_Serve(RTMP *r);
+  RTMPDLLEXPORT int RTMP_TLS_Accept(RTMP *r, void *ctx);
 
   RTMPDLLEXPORT int RTMP_ReadPacket(RTMP *r, RTMPPacket *packet);
   RTMPDLLEXPORT int RTMP_SendPacket(RTMP *r, RTMPPacket *packet, int queue);
@@ -306,6 +336,9 @@ extern "C"
   RTMPDLLEXPORT RTMP *RTMP_Alloc(void);
   RTMPDLLEXPORT void RTMP_Free(RTMP *r);
   RTMPDLLEXPORT void RTMP_EnableWrite(RTMP *r);
+
+  RTMPDLLEXPORT void *RTMP_TLS_AllocServerContext(const char* cert, const char* key);
+  RTMPDLLEXPORT void RTMP_TLS_FreeServerContext(void *ctx);
 
   RTMPDLLEXPORT int RTMP_LibVersion(void);
   RTMPDLLEXPORT void RTMP_UserInterrupt(void);	/* user typed Ctrl-C */

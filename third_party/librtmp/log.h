@@ -38,7 +38,7 @@ extern "C" {
 #undef NODEBUG
 #endif
 
-RTMPDLLEXPORT typedef enum
+typedef enum
 { RTMP_LOGCRIT=0, RTMP_LOGERROR, RTMP_LOGWARNING, RTMP_LOGINFO,
   RTMP_LOGDEBUG, RTMP_LOGDEBUG2, RTMP_LOGALL
 } RTMP_LogLevel;
@@ -48,9 +48,15 @@ extern RTMPDLLEXPORT RTMP_LogLevel RTMP_debuglevel;
 RTMPDLLEXPORT typedef void (RTMP_LogCallback)(int level, const char *fmt, va_list);
 RTMPDLLEXPORT void RTMP_LogSetCallback(RTMP_LogCallback *cb);
 RTMPDLLEXPORT void RTMP_LogSetOutput(FILE *file);
+#ifdef __GNUC__
+RTMPDLLEXPORT void RTMP_LogPrintf(const char *format, ...) __attribute__ ((__format__ (__printf__, 1, 2)));
+RTMPDLLEXPORT void RTMP_LogStatus(const char *format, ...) __attribute__ ((__format__ (__printf__, 1, 2)));
+RTMPDLLEXPORT void RTMP_Log(int level, const char *format, ...) __attribute__ ((__format__ (__printf__, 2, 3)));
+#else
 RTMPDLLEXPORT void RTMP_LogPrintf(const char *format, ...);
 RTMPDLLEXPORT void RTMP_LogStatus(const char *format, ...);
 RTMPDLLEXPORT void RTMP_Log(int level, const char *format, ...);
+#endif
 RTMPDLLEXPORT void RTMP_LogHex(int level, const uint8_t *data, unsigned long len);
 RTMPDLLEXPORT void RTMP_LogHexString(int level, const uint8_t *data, unsigned long len);
 RTMPDLLEXPORT void RTMP_LogSetLevel(RTMP_LogLevel lvl);
