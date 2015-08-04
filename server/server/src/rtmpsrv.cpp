@@ -1111,9 +1111,9 @@ start_sample_rtmp_server(int argc, char **argv)
 
 	defaultRTMPRequest.rtmpport = -1;
 	defaultRTMPRequest.protocol = RTMP_PROTOCOL_UNDEFINED;
-	defaultRTMPRequest.bLiveStream = FALSE;	// is it a live stream? then we can't seek/resume
+	defaultRTMPRequest.bLiveStream = true;	// is it a live stream? then we can't seek/resume
 
-	defaultRTMPRequest.timeout = 300;	// timeout connection afte 300 seconds
+	defaultRTMPRequest.timeout = 500;	// timeout connection after 300 seconds
 	defaultRTMPRequest.bufferTime = 20 * 1000;
 
 
@@ -1132,7 +1132,6 @@ start_sample_rtmp_server(int argc, char **argv)
 	// start text UI
 	//ThreadCreate(controlServerThread, 0);
 	std::thread theThread(controlServerThread);
-	theThread.join();
 
 	// start http streaming
 	if ((rtmpServer =
